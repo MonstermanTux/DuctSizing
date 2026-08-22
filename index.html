@@ -401,13 +401,13 @@
 
     <!-- RECTANGULAR TABLE -->
     <div class="card" id="rectCard" style="display:none">
-      <h2>Rectangular Options <span class="badge">tap row to view graphic</span></h2>
+      <h2>Rectangular Options <span class="badge">sizes = clear airway</span></h2>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
-              <th>Side A</th>
-              <th>Side B</th>
+              <th>Clear A</th>
+              <th>Clear B</th>
               <th>Aspect</th>
               <th>Velocity</th>
               <th>Friction</th>
@@ -645,6 +645,7 @@
     }
 
     // ========== CLEAN 2D CROSS-SECTION GRAPHIC ==========
+    // row.a / row.b are now treated as CLEAR AIRWAY sizes
     function drawGraphic(row) {
       if (!row) return;
       document.getElementById('graphicCard').style.display = 'block';
@@ -652,28 +653,49 @@
       const insul = parseInt(document.getElementById('insul').value) || 0;
       const flange = parseInt(document.getElementById('flange').value) || 30;
 
+      // Clear airway (selected size)
+      const clearA = row.a;
+      const clearB = row.b;
+
+      // Metal size = clear + insulation both sides
+      const metalA = clearA + 2 * insul;
+      const metalB = clearB + 2 * insul;
+
+      // Overall including flanges
+      const overallA = metalA + 2 * flange;
+      const overallB = metalB + 2 * flange;
+
       const svg = document.getElementById('ductSvg');
-      const W = 420, H = 300;
+      const W = 440, H = 340;
       svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
       svg.innerHTML = '';
 
-      // Scale so the duct fits nicely with room for labels and flanges
-      const maxDim = Math.max(row.a, row.b);
-      const scale = Math.min(200 / maxDim, 1.4);
+      // Scale based on overall size so everything fits
+      const maxDim = Math.max(overallA, overallB);
+      const scale = Math.min(210 / maxDim, 1.3);
 
-      const metalW = row.a * scale;
-      const metalH = row.b * scale;
+      const clearW = clearA * scale;
+      const clearH = clearB * scale;
+      const metalW = metalA * scale;
+      const metalH = metalB * scale;
+      const overallW = overallA * scale;
+      const overallH = overallB * scale;
       const insulPx = insul * scale;
-      const flangePx = Math.max(flange * scale * 0.7, 12);
+      const flangePx = flange * scale;
 
-      // Centre the duct
+      // Centre everything
       const cx = W / 2;
-      const cy = H / 2 - 5;
+      const cy = H / 2 - 10;
 
-      const x0 = cx - metalW / 2;   // left of metal
-      const y0 = cy - metalH / 2;   // top of metal
-      const x1 = cx + metalW / 2;   // right of metal
-      const y1 = cy + metalH / 2;   // bottom of metal
+      // Coordinates
+      const ox0 = cx - overallW / 2;   // overall left
+      const oy0 = cy - overallH / 2;   // overall top
+      const mx0 = cx - metalW / 2;     // metal left
+      const my0 = cy - metalH / 2;     // metal top
+      const mx1 = cx + metalW / 2;
+      const my1 = cy + metalH / 2;
+      const cx0 = cx - clearW / 2;     // clear left
+      const cy0 = cy - clearH / 2;     // clear top
 
       // Colors
       const colMetal  = '#64748b';
@@ -682,57 +704,71 @@
       const colFlange = '#94a3b8';
       const colDim    = '#cbd5e1';
 
-      // --- Flanges (left and right) ---
-      // Left flange
-      drawRect(svg, x0 - flangePx, y0, flangePx, metalH, colFlange, '#64748b');
-      // Right flange
-      drawRect(svg, x1, y0, flangePx, metalH, colFlange, '#64748b');
+      // --- Flanges (all four sides) ---
+      drawRect(svg, ox0, oy0, overallW, flangePx, colFlange, '#64748b');                     // top
+      drawRect(svg, ox0, my1, overallW, flangePx, colFlange, '#64748b');                     // bottom
+      drawRect(svg, ox0, my0, flangePx, metalH, colFlange, '#64748b');                       // left
+      drawRect(svg, mx1, my0, flangePx, metalH, colFlange, '#64748b');                       // right
 
-      // --- Metal outer rectangle ---
-      drawRect(svg, x0, y0, metalW, metalH, colMetal, '#475569');
+      // --- Metal ---
+      drawRect(svg, mx0, my0, metalW, metalH, colMetal, '#475569');
 
-      // --- Internal insulation ---
-      if (insul > 0 && insulPx > 1) {
-        // Insulation fills from metal inward
-        drawRect(svg, x0, y0, metalW, metalH, colInsul, 'none');
-
-        // Clear airway (inner rectangle)
-        const clearW = Math.max(metalW - 2 * insulPx, 8);
-        const clearH = Math.max(metalH - 2 * insulPx, 8);
-        const cx0 = cx - clearW / 2;
-        const cy0 = cy - clearH / 2;
+      // --- Insulation (between metal and clear airway) ---
+      if (insul > 0) {
+        drawRect(svg, mx0, my0, metalW, metalH, colInsul, 'none');
+        // Clear airway on top
         drawRect(svg, cx0, cy0, clearW, clearH, colAir, '#0284c7');
       } else {
-        // No insulation – just show air inside with a small inset
-        drawRect(svg, x0 + 3, y0 + 3, metalW - 6, metalH - 6, colAir, '#0284c7');
+        drawRect(svg, mx0 + 2, my0 + 2, metalW - 4, metalH - 4, colAir, '#0284c7');
       }
 
-      // --- Dimension lines & labels ---
-      const metalA = row.a;
-      const metalB = row.b;
-      const clearA = Math.max(metalA - 2 * insul, 0);
-      const clearB = Math.max(metalB - 2 * insul, 0);
+      // --- Dimension lines ---
 
-      // Horizontal dimension (width) below the duct
-      const dimY = y1 + 28;
-      drawLine(svg, x0, dimY, x1, dimY, colDim);
-      drawLine(svg, x0, dimY - 5, x0, dimY + 5, colDim);
-      drawLine(svg, x1, dimY - 5, x1, dimY + 5, colDim);
-      drawText(svg, cx, dimY + 16, metalA + ' mm', colDim, 13);
+      // 1. Clear airway width (inside, blue-ish)
+      const clearDimY = cy0 - 12;
+      if (clearW > 30) {
+        drawLine(svg, cx0, clearDimY, cx0 + clearW, clearDimY, colAir);
+        drawLine(svg, cx0, clearDimY - 4, cx0, clearDimY + 4, colAir);
+        drawLine(svg, cx0 + clearW, clearDimY - 4, cx0 + clearW, clearDimY + 4, colAir);
+        drawText(svg, cx, clearDimY - 6, clearA + '', colAir, 11);
+      }
 
-      // Vertical dimension (height) to the right
-      const dimX = x1 + flangePx + 20;
-      drawLine(svg, dimX, y0, dimX, y1, colDim);
-      drawLine(svg, dimX - 5, y0, dimX + 5, y0, colDim);
-      drawLine(svg, dimX - 5, y1, dimX + 5, y1, colDim);
-      drawText(svg, dimX + 18, cy + 4, metalB + ' mm', colDim, 13);
+      // 2. Metal width (below the duct)
+      const metalDimY = my1 + flangePx + 18;
+      drawLine(svg, mx0, metalDimY, mx1, metalDimY, colMetal);
+      drawLine(svg, mx0, metalDimY - 5, mx0, metalDimY + 5, colMetal);
+      drawLine(svg, mx1, metalDimY - 5, mx1, metalDimY + 5, colMetal);
+      drawText(svg, cx, metalDimY + 14, metalA + ' mm metal', colDim, 12);
 
-      // Notes under the graphic
+      // 3. Overall width (further below)
+      const overallDimY = metalDimY + 28;
+      drawLine(svg, ox0, overallDimY, ox0 + overallW, overallDimY, colFlange);
+      drawLine(svg, ox0, overallDimY - 5, ox0, overallDimY + 5, colFlange);
+      drawLine(svg, ox0 + overallW, overallDimY - 5, ox0 + overallW, overallDimY + 5, colFlange);
+      drawText(svg, cx, overallDimY + 14, overallA + ' mm overall', colDim, 12);
+
+      // Vertical dimensions on the right
+      const dimX = mx1 + flangePx + 16;
+
+      // Clear height
+      if (clearH > 30) {
+        drawLine(svg, dimX, cy0, dimX, cy0 + clearH, colAir);
+        drawText(svg, dimX + 14, cy, clearB + '', colAir, 11);
+      }
+
+      // Metal height
+      const dimX2 = dimX + 28;
+      drawLine(svg, dimX2, my0, dimX2, my1, colMetal);
+      drawLine(svg, dimX2 - 4, my0, dimX2 + 4, my0, colMetal);
+      drawLine(svg, dimX2 - 4, my1, dimX2 + 4, my1, colMetal);
+      drawText(svg, dimX2 + 16, cy, metalB + '', colDim, 12);
+
+      // Notes
       const notes = document.getElementById('dimNotes');
       notes.innerHTML = `
-        <strong>Metal size:</strong> ${metalA} × ${metalB} mm<br>
-        ${insul > 0 ? `<strong>Clear airway (after ${insul} mm internal insulation):</strong> ${clearA} × ${clearB} mm<br>` : ''}
-        <strong>Flanges:</strong> ${flange} mm each side (typical Australian practice)
+        <strong>Clear airway:</strong> ${clearA} × ${clearB} mm<br>
+        <strong>Metal size</strong> (clear + ${insul} mm insulation both sides): <strong>${metalA} × ${metalB} mm</strong><br>
+        <strong>Overall with flanges</strong> (${flange} mm all around): <strong>${overallA} × ${overallB} mm</strong>
       `;
     }
 
