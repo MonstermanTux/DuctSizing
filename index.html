@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="description" content="Personal duct sizing tool – first principles friction, circular + rectangular equivalents" />
+  <title>Duct Sizing</title>
+  <link rel="manifest" href="manifest.json" />
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent2: #22d3ee;
+      --success: #4ade80;
+      --warning: #fbbf24;
+      --danger: #f87171;
+      --radius: 12px;
+      --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100dvh;
+      padding: 12px;
+      padding-bottom: 40px;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding: 8px 0;
+    }
+
+    header h1 {
+      font-size: 1.35rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    header h1 span {
+      color: var(--accent);
+      font-weight: 400;
+      font-size: 0.9rem;
+      margin-left: 8px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+
+    .card h2 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+    }
+
+    @media (max-width: 640px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    }
+
+    label {
+      display: block;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+
+    input, select {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-family: inherit;
+      transition: border-color 0.15s;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      background: var(--accent);
+      color: #0f172a;
+      border: none;
+      padding: 11px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    button:hover { opacity: 0.9; }
+    button.secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .result-highlight {
+      background: #0f172a;
+      border: 1px solid var(--accent);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+    }
+
+    .result-highlight .label {
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .result-highlight .value {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--accent2);
+      margin-top: 2px;
+    }
+
+    .result-highlight .sub {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .metric {
+      background: #0f172a;
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+
+    .metric .label { font-size: 0.72rem; color: var(--muted); }
+    .metric .value { font-size: 1.1rem; font-weight: 600; margin-top: 2px; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+
+    th {
+      text-align: left;
+      padding: 8px 6px;
+      color: var(--muted);
+      font-weight: 500;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+    }
+
+    td {
+      padding: 9px 6px;
+      border-bottom: 1px solid #1e293b;
+    }
+
+    tr:hover td { background: #1a2436; }
+    tr.selected td { background: #0c4a6e; }
+
+    .table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* Graphic area */
+    .graphic-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    #ductSvg {
+      width: 100%;
+      max-width: 420px;
+      height: auto;
+      background: #0f172a;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .graphic-controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 100%;
+    }
+
+    .graphic-controls label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .legend {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      font-size: 0.78rem;
+      color: var(--muted);
+      justify-content: center;
+    }
+
+    .legend span {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+    }
+
+    .footer-note {
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 24px;
+      padding: 0 10px;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #0c4a6e;
+      color: var(--accent2);
+      font-size: 0.7rem;
+      padding: 2px 7px;
+      border-radius: 4px;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Duct Sizing <span>first principles</span></h1>
+      <div style="font-size:1rem; color:#fbbf24; margin-top:8px; font-weight:700; background:#0c4a6e; padding:6px 12px; border-radius:6px; display:inline-block;">
+        By Grok using Geoff's most excellent python programme
+      </div>
+    </header>
+
+    <!-- INPUTS -->
+    <div class="card">
+      <h2>Inputs</h2>
+      <div class="grid-3">
+        <div>
+          <label for="flow">Flow rate (m³/s)</label>
+          <input type="number" id="flow" value="0.50" step="0.01" min="0.01" />
+        </div>
+        <div>
+          <label for="vmax">Max velocity (m/s)</label>
+          <input type="number" id="vmax" value="7.5" step="0.1" min="1" />
+        </div>
+        <div>
+          <label for="dp">Max friction (Pa/m)</label>
+          <input type="number" id="dp" value="1.2" step="0.1" min="0.1" />
+        </div>
+      </div>
+
+      <div class="grid-3" style="margin-top:12px">
+        <div>
+          <label for="temp">Temperature (°C)</label>
+          <input type="number" id="temp" value="15" step="1" min="-10" max="50" />
+        </div>
+        <div>
+          <label for="material">Material / Roughness</label>
+          <select id="material">
+            <option value="0.00015" selected>Sheet metal (0.15 mm)</option>
+            <option value="0.000046">Commercial steel</option>
+            <option value="0.0005">Riveted steel</option>
+            <option value="0.00026">Cast iron</option>
+            <option value="0.002">Concrete</option>
+            <option value="0.0015">PVC</option>
+            <option value="0.0000015">Drawn tubing</option>
+          </select>
+        </div>
+        <div>
+          <label for="insul">Internal insulation (mm)</label>
+          <select id="insul">
+            <option value="0">None</option>
+            <option value="25" selected>25 mm</option>
+            <option value="40">40 mm</option>
+            <option value="75">75 mm</option>
+            <option value="100">100 mm</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-top:12px">
+        <div>
+          <label for="flange">Flange (mm) – typical AU</label>
+          <select id="flange">
+            <option value="20">20 mm</option>
+            <option value="25">25 mm</option>
+            <option value="30" selected>30 mm</option>
+            <option value="35">35 mm</option>
+            <option value="40">40 mm</option>
+          </select>
+        </div>
+        <div>
+          <label for="aspectMax">Max aspect ratio</label>
+          <input type="number" id="aspectMax" value="4.0" step="0.1" min="1.5" max="6" />
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button onclick="calculate()">Calculate</button>
+        <button class="secondary" onclick="resetDefaults()">Reset defaults</button>
+      </div>
+    </div>
+
+    <!-- CIRCULAR RESULT -->
+    <div class="card" id="circularCard" style="display:none">
+      <h2>Circular Equivalent</h2>
+      <div class="result-highlight">
+        <div class="label">Equivalent diameter</div>
+        <div class="value" id="circDia">—</div>
+        <div class="sub" id="circSub">—</div>
+      </div>
+      <div class="metrics">
+        <div class="metric">
+          <div class="label">Velocity</div>
+          <div class="value" id="circVel">—</div>
+        </div>
+        <div class="metric">
+          <div class="label">Friction</div>
+          <div class="value" id="circFric">—</div>
+        </div>
+        <div class="metric">
+          <div class="label">Density</div>
+          <div class="value" id="circRho">—</div>
+        </div>
+        <div class="metric">
+          <div class="label">Viscosity</div>
+          <div class="value" id="circMu">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RECTANGULAR TABLE -->
+    <div class="card" id="rectCard" style="display:none">
+      <h2>Rectangular Options <span class="badge">sizes = clear airway</span></h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Clear A</th>
+              <th>Clear B</th>
+              <th>Aspect</th>
+              <th>Velocity</th>
+              <th>Friction</th>
+              <th>Eq. Ø</th>
+            </tr>
+          </thead>
+          <tbody id="rectBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- GRAPHIC -->
+    <div class="card" id="graphicCard" style="display:none">
+      <h2>Dimension Graphic <span class="badge">internal insulation only</span></h2>
+      <div class="graphic-container">
+        <svg id="ductSvg" viewBox="0 0 420 320" xmlns="http://www.w3.org/2000/svg"></svg>
+        <div class="legend">
+          <span><div class="swatch" style="background:#64748b"></div> Metal</span>
+          <span><div class="swatch" style="background:#fbbf24"></div> Insulation</span>
+          <span><div class="swatch" style="background:#0ea5e9"></div> Clear airway</span>
+          <span><div class="swatch" style="background:#94a3b8"></div> Flange</span>
+        </div>
+        <div id="dimNotes" style="font-size:0.82rem;color:var(--muted);text-align:center;line-height:1.6"></div>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      First-principles friction · Circular → Rectangular · Internal insulation only<br>
+      Zero-cost personal tool · Add to Home Screen from Safari<br>
+      <span style="opacity:0.5">v1.3 – dimensions outside</span>
+    </div>
+  </div>
+
+  <script>
+    // ========== CORE CALCULATION (ported from original Python) ==========
+
+    function interpolate(knownLow, known, knownHigh, unknownLow, unknownHigh) {
+      return ((known - knownLow) / (knownHigh - knownLow)) * (unknownHigh - unknownLow) + unknownLow;
+    }
+
+    function fluidConstants(t) {
+      const constants = [
+        [-10.0, 0.0, 16.768, 17.238, 1.3414, 1.2922],
+        [0.1, 10.0, 17.238, 17.708, 1.2922, 1.2467],
+        [10.1, 20.0, 17.708, 18.178, 1.2467, 1.2041],
+        [20.1, 30.0, 18.178, 18.648, 1.2041, 1.1644],
+        [30.1, 40.0, 18.648, 19.118, 1.1644, 1.1272],
+        [40.1, 50.0, 19.118, 19.588, 1.1272, 1.0924]
+      ];
+      let viscosity, density;
+      for (const c of constants) {
+        const [tLow, tHigh, muLow, muHigh, rhoLow, rhoHigh] = c;
+        if (t >= tLow && t <= tHigh) {
+          viscosity = interpolate(tLow, t, tHigh, muLow, muHigh);
+          density = interpolate(tLow, t, tHigh, rhoLow, rhoHigh);
+          break;
+        }
+      }
+      return { mu: viscosity / 1e6, rho: density };
+    }
+
+    function reynolds(V, D, rho, mu) {
+      return V * D * rho / mu;
+    }
+
+    function diameterFromVelocity(q, v) {
+      return Math.sqrt(4 * q / v / Math.PI);
+    }
+
+    // Iterative diameter to meet friction limit (faithful port)
+    function findDiameter(vmax, q, dpMax, rho, e, mu) {
+      let v = vmax;
+      let d = diameterFromVelocity(q, v);
+      let dp1 = dpMax + 1;
+      let dp2 = dpMax;
+      let guard = 0;
+
+      while (Math.abs(dp1 - dp2) > 0.01 && guard < 5000) {
+        v = q / (Math.PI * d * d / 4);
+        const fDesired = dpMax * d * 2 / (v * v) / rho;
+        const Re = reynolds(v, d, rho, mu);
+        // Original friction factor approximation
+        const f1 = Math.pow(1 / (1.14 + 2 * Math.log10(d / e) - 2 * Math.log10(1 + 9.3 / Re / (e / d) / Math.sqrt(fDesired))), 2);
+        dp1 = f1 * (1 / d) * (v * v / 2) * rho;
+        dp2 = fDesired * (1 / d) * (v * v / 2) * rho;
+
+        if (dp1 >= dp2) d += 0.001;
+        else d -= 0.001;
+        guard++;
+      }
+      return { d, v, dp: dp1 };
+    }
+
+    // Rectangular equivalent side (original method)
+    function rectangularSide(d, b) {
+      let a = Math.PI * d * d / 4 / b;
+      let d1 = d + 1;
+      let guard = 0;
+      while (Math.abs(d1 - d) > 0.01 && guard < 3000) {
+        d1 = 1.3 * Math.pow(a * b, 0.625) / Math.pow(a + b, 0.25);
+        if (d1 <= d) a += 0.01;
+        else a -= 0.01;
+        guard++;
+      }
+      return a;
+    }
+
+    function aspectRatio(a, b) {
+      return a >= b ? a / b : b / a;
+    }
+
+    // Round up to next 50 mm (same spirit as original)
+    function roundDuctDim(mm) {
+      const sizes = [];
+      for (let s = 50; s <= 3000; s += 50) sizes.push(s);
+      const target = mm - 10;
+      for (const s of sizes) {
+        if (target <= s) return s;
+      }
+      return 3000;
+    }
+
+    // ========== UI STATE ==========
+    let currentCircular = null;
+    let currentRows = [];
+    let selectedIdx = -1;
+
+    function resetDefaults() {
+      document.getElementById('flow').value = 0.50;
+      document.getElementById('vmax').value = 7.5;
+      document.getElementById('dp').value = 1.2;
+      document.getElementById('temp').value = 15;
+      document.getElementById('material').value = '0.00015';
+      document.getElementById('insul').value = '25';
+      document.getElementById('flange').value = '30';
+      document.getElementById('aspectMax').value = 4.0;
+      calculate();
+    }
+
+    function calculate() {
+      const q = parseFloat(document.getElementById('flow').value) || 0.5;
+      const vmax = parseFloat(document.getElementById('vmax').value) || 7.5;
+      const dpMax = parseFloat(document.getElementById('dp').value) || 1.2;
+      const t = parseFloat(document.getElementById('temp').value) || 15;
+      const e = parseFloat(document.getElementById('material').value) || 0.00015;
+      const aspectMax = parseFloat(document.getElementById('aspectMax').value) || 4.0;
+
+      const { mu, rho } = fluidConstants(t);
+
+      // Circular
+      let result = findDiameter(vmax, q, dpMax, rho, e, mu);
+      if (result.v > vmax) {
+        const dVel = diameterFromVelocity(q, vmax);
+        const v = q / (Math.PI * dVel * dVel / 4);
+        // re-run friction at this diameter for reporting
+        const reCalc = findDiameter(v, q, dpMax, rho, e, mu);
+        result = { d: dVel, v, dp: reCalc.dp };
+      }
+
+      currentCircular = { ...result, rho, mu, q };
+
+      // Display circular
+      document.getElementById('circularCard').style.display = 'block';
+      document.getElementById('circDia').textContent = (result.d * 1000).toFixed(0) + ' mm';
+      document.getElementById('circSub').textContent =
+        `Velocity limited to ${vmax} m/s · Target friction ${dpMax} Pa/m`;
+      document.getElementById('circVel').textContent = result.v.toFixed(2) + ' m/s';
+      document.getElementById('circFric').textContent = result.dp.toFixed(2) + ' Pa/m';
+      document.getElementById('circRho').textContent = rho.toFixed(3) + ' kg/m³';
+      document.getElementById('circMu').textContent = (mu * 1e5).toFixed(2) + 'e-5';
+
+      // Rectangular range – expanded to smaller sizes (50 mm upward)
+      const sides = [];
+      for (let b = 0.05; b <= 1.25; b += 0.05) sides.push(+b.toFixed(2));
+
+      currentRows = [];
+      for (const b of sides) {
+        const aRaw = rectangularSide(result.d, b);
+        const ar = aspectRatio(aRaw, b);
+        if (ar > aspectMax) continue;
+
+        const aRound = roundDuctDim(aRaw * 1000);
+        const bRound = roundDuctDim(b * 1000);
+        // Use rounded for velocity / re-check
+        const area = (aRound / 1000) * (bRound / 1000);
+        const vel = q / area;
+
+        // Approximate friction at this size (using equivalent diameter of the rounded pair)
+        const deq = 1.3 * Math.pow(area, 0.625) / Math.pow(aRound/1000 + bRound/1000, 0.25);
+        const fricApprox = findDiameter(vel, q, dpMax, rho, e, mu).dp;
+
+        currentRows.push({
+          a: aRound,
+          b: bRound,
+          ar: ar,
+          vel: vel,
+          fric: fricApprox,
+          deq: deq * 1000
+        });
+      }
+
+      // Sort by area ascending
+      currentRows.sort((x, y) => (x.a * x.b) - (y.a * y.b));
+
+      // Render table
+      const tbody = document.getElementById('rectBody');
+      tbody.innerHTML = '';
+      currentRows.forEach((row, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${row.a}</td>
+          <td>${row.b}</td>
+          <td>${row.ar.toFixed(2)}</td>
+          <td>${row.vel.toFixed(2)}</td>
+          <td>${row.fric.toFixed(2)}</td>
+          <td>${row.deq.toFixed(0)}</td>
+        `;
+        tr.onclick = () => selectRow(idx);
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById('rectCard').style.display = 'block';
+
+      // Auto-select a mid-range practical size if available
+      if (currentRows.length > 0) {
+        const mid = Math.min(Math.floor(currentRows.length / 3), currentRows.length - 1);
+        selectRow(mid);
+      }
+    }
+
+    function selectRow(idx) {
+      selectedIdx = idx;
+      const rows = document.querySelectorAll('#rectBody tr');
+      rows.forEach((r, i) => r.classList.toggle('selected', i === idx));
+      drawGraphic(currentRows[idx]);
+    }
+
+    // ========== CLEAN 2D CROSS-SECTION GRAPHIC ==========
+    // row.a / row.b are now treated as CLEAR AIRWAY sizes
+    function drawGraphic(row) {
+      if (!row) return;
+      document.getElementById('graphicCard').style.display = 'block';
+
+      const insul = parseInt(document.getElementById('insul').value) || 0;
+      const flange = parseInt(document.getElementById('flange').value) || 30;
+
+      // Clear airway (selected size)
+      const clearA = row.a;
+      const clearB = row.b;
+
+      // Metal size = clear + insulation both sides
+      const metalA = clearA + 2 * insul;
+      const metalB = clearB + 2 * insul;
+
+      // Overall including flanges
+      const overallA = metalA + 2 * flange;
+      const overallB = metalB + 2 * flange;
+
+      const svg = document.getElementById('ductSvg');
+      const W = 480, H = 480;
+      svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+      svg.innerHTML = '';
+
+      // Larger scale so the duct fills more of the window
+      // Leave room on right for vertical dims and below for three horizontal dims
+      const maxDim = Math.max(overallA, overallB);
+      const scale = Math.min(240 / maxDim, 1.4);
+
+      const clearW = clearA * scale;
+      const clearH = clearB * scale;
+      const metalW = metalA * scale;
+      const metalH = metalB * scale;
+      const overallW = overallA * scale;
+      const overallH = overallB * scale;
+      const insulPx = insul * scale;
+      const flangePx = flange * scale;
+
+      // Centre duct, offset left a bit for vertical dims, up a bit for bottom dims
+      const cx = W / 2 - 50;
+      const cy = H / 2 - 30;
+
+      // Coordinates
+      const ox0 = cx - overallW / 2;
+      const oy0 = cy - overallH / 2;
+      const mx0 = cx - metalW / 2;
+      const my0 = cy - metalH / 2;
+      const mx1 = cx + metalW / 2;
+      const my1 = cy + metalH / 2;
+      const cx0 = cx - clearW / 2;
+      const cy0 = cy - clearH / 2;
+
+      // Colors
+      const colMetal  = '#64748b';
+      const colInsul  = '#fbbf24';
+      const colAir    = '#0ea5e9';
+      const colFlange = '#94a3b8';
+      const colDim    = '#cbd5e1';
+
+      // --- Flanges (all four sides) ---
+      drawRect(svg, ox0, oy0, overallW, flangePx, colFlange, '#64748b');
+      drawRect(svg, ox0, my1, overallW, flangePx, colFlange, '#64748b');
+      drawRect(svg, ox0, my0, flangePx, metalH, colFlange, '#64748b');
+      drawRect(svg, mx1, my0, flangePx, metalH, colFlange, '#64748b');
+
+      // --- Metal ---
+      drawRect(svg, mx0, my0, metalW, metalH, colMetal, '#475569');
+
+      // --- Insulation + Clear airway ---
+      if (insul > 0) {
+        drawRect(svg, mx0, my0, metalW, metalH, colInsul, 'none');
+        drawRect(svg, cx0, cy0, clearW, clearH, colAir, '#0284c7');
+      } else {
+        drawRect(svg, mx0 + 2, my0 + 2, metalW - 4, metalH - 4, colAir, '#0284c7');
+      }
+
+      // ========== DIMENSIONS (all outside the box) ==========
+
+      // --- Horizontal dimensions (all below the duct) ---
+      // Spacing similar to the vertical dimensions on the right (~28 px)
+      const hBase = my1 + flangePx + 22;
+
+      // Clear width (closest to flange)
+      const clearDimY = hBase;
+      drawLine(svg, cx0, clearDimY, cx0 + clearW, clearDimY, colAir);
+      drawLine(svg, cx0, clearDimY - 6, cx0, clearDimY + 6, colAir);
+      drawLine(svg, cx0 + clearW, clearDimY - 6, cx0 + clearW, clearDimY + 6, colAir);
+      drawText(svg, cx, clearDimY + 16, clearA + ' mm clear', colAir, 12);
+
+      // Metal width
+      const metalDimY = hBase + 28;
+      drawLine(svg, mx0, metalDimY, mx1, metalDimY, colMetal);
+      drawLine(svg, mx0, metalDimY - 6, mx0, metalDimY + 6, colMetal);
+      drawLine(svg, mx1, metalDimY - 6, mx1, metalDimY + 6, colMetal);
+      drawText(svg, cx, metalDimY + 16, metalA + ' mm metal', colDim, 12);
+
+      // Overall width (furthest out)
+      const overallDimY = hBase + 56;
+      drawLine(svg, ox0, overallDimY, ox0 + overallW, overallDimY, colFlange);
+      drawLine(svg, ox0, overallDimY - 6, ox0, overallDimY + 6, colFlange);
+      drawLine(svg, ox0 + overallW, overallDimY - 6, ox0 + overallW, overallDimY + 6, colFlange);
+      drawText(svg, cx, overallDimY + 16, overallA + ' mm overall', colDim, 12);
+
+      // --- Vertical dimensions (right side, spaced out) ---
+      // Short labels only (number) to stop overlapping
+      const vBase = mx1 + flangePx + 18;
+
+      // Clear height
+      drawLine(svg, vBase, cy0, vBase, cy0 + clearH, colAir);
+      drawLine(svg, vBase - 5, cy0, vBase + 5, cy0, colAir);
+      drawLine(svg, vBase - 5, cy0 + clearH, vBase + 5, cy0 + clearH, colAir);
+      drawText(svg, vBase + 14, cy, clearB + '', colAir, 12);
+
+      // Metal height
+      const vMetal = vBase + 28;
+      drawLine(svg, vMetal, my0, vMetal, my1, colMetal);
+      drawLine(svg, vMetal - 5, my0, vMetal + 5, my0, colMetal);
+      drawLine(svg, vMetal - 5, my1, vMetal + 5, my1, colMetal);
+      drawText(svg, vMetal + 14, cy, metalB + '', colDim, 12);
+
+      // Overall height
+      const vOverall = vMetal + 28;
+      drawLine(svg, vOverall, oy0, vOverall, oy0 + overallH, colFlange);
+      drawLine(svg, vOverall - 5, oy0, vOverall + 5, oy0, colFlange);
+      drawLine(svg, vOverall - 5, oy0 + overallH, vOverall + 5, oy0 + overallH, colFlange);
+      drawText(svg, vOverall + 14, cy, overallB + '', colDim, 12);
+
+      // Notes
+      const notes = document.getElementById('dimNotes');
+      notes.innerHTML = `
+        <strong>Clear airway:</strong> ${clearA} × ${clearB} mm<br>
+        <strong>Metal size</strong> (clear + ${insul} mm insulation both sides): <strong>${metalA} × ${metalB} mm</strong><br>
+        <strong>Overall with flanges</strong> (${flange} mm all around): <strong>${overallA} × ${overallB} mm</strong>
+      `;
+    }
+
+    function drawRect(svg, x, y, w, h, fill, stroke) {
+      const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      r.setAttribute('x', x);
+      r.setAttribute('y', y);
+      r.setAttribute('width', w);
+      r.setAttribute('height', h);
+      r.setAttribute('fill', fill);
+      r.setAttribute('stroke', stroke || fill);
+      r.setAttribute('stroke-width', '1.5');
+      svg.appendChild(r);
+    }
+
+    function drawLine(svg, x1, y1, x2, y2, color) {
+      const l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      l.setAttribute('x1', x1);
+      l.setAttribute('y1', y1);
+      l.setAttribute('x2', x2);
+      l.setAttribute('y2', y2);
+      l.setAttribute('stroke', color);
+      l.setAttribute('stroke-width', '1.5');
+      svg.appendChild(l);
+    }
+
+    function drawText(svg, x, y, text, color, size) {
+      const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      t.setAttribute('x', x);
+      t.setAttribute('y', y);
+      t.setAttribute('fill', color);
+      t.setAttribute('font-size', size);
+      t.setAttribute('text-anchor', 'middle');
+      t.setAttribute('font-family', 'system-ui, sans-serif');
+      t.textContent = text;
+      svg.appendChild(t);
+    }
+
+    // Initial run
+    calculate();
+  </script>
+</body>
+</html>
